@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>પ્રોફેશનલ શાળાકીય મૂલ્યાંકન પત્રક</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Vadodara:wght@400;600;700&display=swap');
+        
+        * { box-sizing: border-box; }
+        body { font-family: 'Hind Vadodara', sans-serif; background: #f0f2f5; padding: 15px; margin: 0; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); border-top: 6px solid #d32f2f; }
+        .page { display: none; }
+        .active { display: block; }
+        
+        input, textarea, select { width: 100%; padding: 10px; margin: 8px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        input[type="number"] { width: 85px !important; height: 40px; text-align: center; font-weight: bold; font-size: 18px; border: 2px solid #3498db; }
+
+        .btn { background: linear-gradient(135deg, #1e3799, #0c2461); color: white; padding: 12px; border: none; border-radius: 10px; font-size: 18px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-red { background: #eb2f06; width: auto; padding: 8px 15px; font-size: 13px; float: right; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-green { background: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 5px; }
+        .btn-excel { background: #1d6f42; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 5px; }
+        
+        .btn-backup { background: #6c5ce7; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 5px; border:none; }
+        .btn-restore { background: #fd9644; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; border:none; }
+
+        .sub-btn { background: #f1f2f6; color: #2f3542; padding: 10px 18px; margin: 4px; border: 2px solid #ced6e0; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .sub-btn:hover { background: #1e3799; color: white; }
+
+        .std-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
+        .std-block { background: #f8f9fa; border: 2px solid #3498db; color: #0c2461; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .std-block:hover { background: #3498db; color: white; }
+        .std-block.selected { background: #1e3799; color: white; border-color: #0c2461; box-shadow: 0 4px 10px rgba(30,55,153,0.3); }
+
+        #pdf-content { background: white; width: 800px; padding: 30px; border: 12px double #1e3799; color: #1a1a1a; position: relative; margin: auto; line-height: 1.3; }
+        .school-logo { position: absolute; top: 30px; left: 35px; width: 110px; height: 110px; border: 2px solid #1e3799; border-radius: 50%; padding: 3px; background: white; }
+        .saraswati-logo { position: absolute; top: 30px; right: 35px; width: 110px; height: 110px; border: 2px solid #1e3799; border-radius: 50%; padding: 3px; background: white; }
+        
+        .header-top { text-align: center; margin-bottom: 10px; }
+        .header-top h1 { color: #d32f2f; margin: 0; font-size: 28px; font-weight: 800; }
+        .header-top h2 { color: #0c2461; margin: 2px 0; font-size: 22px; }
+        
+        #h-sch { font-size: 42px !important; color: #d32f2f; font-weight: 900; margin: 5px 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; border: 2px solid #1e3799; border-radius: 10px; padding: 12px; margin-bottom: 12px; background: #f9fbff; }
+        .info-grid div { font-size: 19px; border-bottom: 1px dashed #d1d8e0; padding: 2px 0; }
+        .info-grid b { color: #0c2461; }
+
+        #h-name { font-size: 19px !important; font-weight: 800; color: #000; vertical-align: middle; }
+
+        .section-header { background: #1e3799; color: white; padding: 6px; font-weight: bold; text-align: center; border-radius: 5px; font-size: 19px; margin-bottom: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; border: 2px solid #1e3799; }
+        th { background: #e8f1f9; color: #0c2461; padding: 8px; border: 1px solid #1e3799; font-weight: 700; font-size: 19px; }
+        td { padding: 7px; border: 1px solid #1e3799; text-align: center; font-size: 19px; }
+        tr:nth-child(even) { background-color: #fcfdfe; }
+
+        .grand-total-row { background: #fff4e6 !important; font-weight: 800; font-size: 19px; color: #d35400; }
+        .summary-row { background: #ebfbee !important; font-weight: 700; }
+
+        .footer-sig { display: flex; justify-content: space-between; margin-top: 35px; text-align: center; font-weight: bold; font-size: 19px; }
+        .seal-space { margin: 5px auto; width: 110px; height: 110px; border: 2px dashed #1e3799; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #1e3799; background: #f7f9ff; }
+        .date-box { font-size: 16px; margin-top: 5px; color: #333; }
+
+        /* મોબાઈલ રિસ્પોન્સિવ સુધારા */
+        @media (max-width: 768px) {
+            body { padding: 5px; }
+            .container { padding: 12px; border-radius: 8px; }
+            .std-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+            .info-grid { grid-template-columns: 1fr !important; }
+            input[type="text"], input[type="password"], input[type="date"], textarea, select { font-size: 14px; padding: 8px; }
+            #entryArea, #h-table { overflow-x: auto; display: block; white-space: nowrap; }
+            .sub-btn { padding: 8px 12px; font-size: 14px; margin: 2px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <button class="btn-backup" onclick="exportBackup()">📥 Backup</button>
+            <button class="btn-restore" onclick="document.getElementById('importFile').click()">📤 Restore</button>
+            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importBackup(event)">
+        </div>
+        <div>
+            <button class="sub-btn" style="background:#e67e22; color:white;" onclick="checkAdminAccess()">⚙️ એડમીન સેટઅપ</button>
+            <button class="btn btn-red" onclick="clearData()">🗑️</button>
+        </div>
+    </div>
+
+    <h2 style="text-align: center; color: #1e3799; margin: 15px 0 5px 0;">📄 શાળાકીય મૂલ્યાંકન સોફ્ટવેર</h2>
+    <div style="text-align: center; font-weight: bold; font-size: 18px; color: #d32f2f; margin-bottom: 15px;">
+        પ્રાથમિક શાળા વાંકાનેર, તા. બારડોલી, જી. સુરત - પરિણામ
+    </div>
+
+    <!-- પેજ ૧: એડમીન સેટઅપ પેજ -->
+    <div id="p1" class="page active">
+        <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 10px; margin-top: 15px;">
+            <h3 style="color: #1e3799; text-align: center; margin-top: 0;">૧. એડમીન સેટઅપ (વિદ્યાર્થી, વિષય અને ગુણ)</h3>
+            
+            <div id="adminPasswordBox" style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffeeba;">
+                <label><b>એડમીન પિન નાખો (સુધારો કરવા માટે):</b></label>
+                <div style="display: flex; gap: 10px; margin-top: 5px;">
+                    <input type="password" id="adminPinInput" placeholder="પિન નાખો" maxlength="4" style="max-width: 200px; margin: 0;">
+                    <button class="btn" style="background: #d35400; margin: 0; width: auto; padding: 0 20px;" onclick="unlockAdminSetup()">અનલોક કરો 🔓</button>
+                </div>
+            </div>
+
+            <div id="adminEditableContent" style="opacity: 0.4; pointer-events: none;">
+                <label><b>ધોરણ પસંદ કરો:</b></label>
+                <select id="stdSelect" onchange="onStdDropdownChange()" style="font-weight: bold; color: #0c2461; border: 2px solid #1e3799;">
+                    <option value="1">ધોરણ ૧</option>
+                    <option value="2">ધોરણ ૨</option>
+                    <option value="3">ધોરણ ૩</option>
+                    <option value="4">ધોરણ ૪</option>
+                    <option value="5">ધોરણ ૫</option>
+                    <option value="6A">ધોરણ ૬-અ</option>
+                    <option value="6B">ધોરણ ૬-બ</option>
+                    <option value="7A">ધોરણ ૭-અ</option>
+                    <option value="7B">ધોરણ ૭-બ</option>
+                    <option value="8A">ધોરણ ૮-અ</option>
+                    <option value="8B">ધોરણ ૮-બ</option>
+                </select>
+
+                <label style="margin-top: 10px; display:block;"><b>બેઝિક વિગતો અને લોગો:</b></label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label>શાળાનો લોગો:</label>
+                        <input type="file" id="logoInput" accept="image/*" onchange="handleLogo(event)">
+                    </div>
+                    <div>
+                        <label>સરસ્વતી માતાનો ફોટો:</label>
+                        <input type="file" id="saraswatiInput" accept="image/*" onchange="handleSaraswati(event)">
+                    </div>
+                </div>
+                <input type="text" id="sch" placeholder="શાળાનું નામ" value="પ્રાથમિક શાળા વાંકાનેર">
+                <input type="text" id="schDice" placeholder="આધાર ડાયસ કોડ">
+                <input type="date" id="rDate">
+
+                <label style="margin-top: 15px; display:block;"><b>વિદ્યાર્થીઓની વિગતો (Excel માંથી કોપી કરી પેસ્ટ કરો):</b></label>
+                <textarea id="stuDataRaw" rows="5" placeholder="રોલ નં \t નામ \t જીઆર નં \t જન્મ તારીખ \t માતાનું નામ \t આધાર આઈડી"></textarea>
+                
+                <label style="margin-top: 15px; display:block;"><b>વિષયો અને મહત્તમ ગુણ (દરેક વિષય નવી લાઈનમાં: વિષય, ત્રિમાસિક, સત્ર૧, સ્વાધ્યયન૧, નવમાસિક, સત્ર૨, સ્વાધ્યયન૨):</b></label>
+                <p style="font-size: 13px; color: #555; margin: 0 0 5px 0;">દા.ત. ગુજરાતી,40,40,20,40,40,20</p>
+                <textarea id="subsConfigRaw" rows="5" placeholder="ગુજરાતી,40,40,20,40,40,20&#10;ગણિત,40,40,20,40,40,20"></textarea>
+
+                <label style="margin-top: 15px; display:block;"><b>વ્યક્તિત્વ વિકાસના મહત્તમ ગુણ:</b></label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="number" id="persMax1" placeholder="સત્ર-૧ (દા.ત. 200)" value="400">
+                    <input type="number" id="persMax2" placeholder="સત્ર-૨ (દા.ત. 200)" value="400">
+                </div>
+
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px dashed #3498db;">
+                    <label><b>નવો પિન (PIN) સેટ કરો અને લોક કરો:</b></label>
+                    <input type="password" id="entryPin" placeholder="4 અંકનો પિન" maxlength="4" style="width: 200px;">
+                    <button class="btn" style="background:#27ae60; margin-top: 10px;" onclick="saveAndLockData()">ડેટા સેવ અને લોક કરો 🔒☁️</button>
+                </div>
+            </div>
+
+            <button class="btn" style="background: #1e3799; margin-top: 20px;" onclick="goToTeacherStandardPage()">શિક્ષકો માટે ધોરણ પસંદગી પેજ પર જાઓ ➔</button>
+        </div>
+    </div>
+
+    <!-- પેજ ૧.૫: શિક્ષકો માટે માત્ર ધોરણ પસંદગી પેજ -->
+    <div id="p1_5" class="page">
+        <div style="background: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 10px; text-align: center;">
+            <h3 style="color: #1e3799; margin-top: 0;">ગુણ એન્ટ્રી માટે તમારું ધોરણ પસંદ કરો:</h3>
+            <input type="hidden" id="std">
+            <div class="std-grid">
+                <div class="std-block" onclick="selectStandard('1', this)">ધોરણ ૧</div>
+                <div class="std-block" onclick="selectStandard('2', this)">ધોરણ ૨</div>
+                <div class="std-block" onclick="selectStandard('3', this)">ધોરણ ૩</div>
+                <div class="std-block" onclick="selectStandard('4', this)">ધોરણ ૪</div>
+                <div class="std-block" onclick="selectStandard('5', this)">ધોરણ ૫</div>
+                <div class="std-block" onclick="selectStandard('6A', this)">ધોરણ ૬-અ</div>
+                <div class="std-block" onclick="selectStandard('6B', this)">ધોરણ ૬-બ</div>
+                <div class="std-block" onclick="selectStandard('7A', this)">ધોરણ ૭-અ</div>
+                <div class="std-block" onclick="selectStandard('7B', this)">ધોરણ ૭-બ</div>
+                <div class="std-block" onclick="selectStandard('8A', this)">ધોરણ ૮-અ</div>
+                <div class="std-block" onclick="selectStandard('8B', this)">ધોરણ ૮-બ</div>
+            </div>
+            <button class="btn" style="max-width: 300px; margin: 20px auto 0 auto;" onclick="goToMarkEntry()">ગુણ એન્ટ્રી શરૂ કરો ➔</button>
+        </div>
+    </div>
+
+    <!-- પેજ ૨: ઓટો-સેવ માર્ક એન્ટ્રી પેજ -->
+    <div id="p2" class="page">
+        <button class="sub-btn" onclick="showPage('1_5')">⬅ ધોરણ પસંદગી પર જાઓ</button>
+        <div id="subButtons" style="text-align:center; margin: 10px 0;"></div>
+        <div id="entryArea"></div>
+        <button class="btn" onclick="goToDownload()" style="background:#27ae60; margin-top: 20px;">રિઝલ્ટ જનરેટ કરો ➔</button>
+    </div>
+
+    <!-- પેજ ૩: ડાઉનલોડ પેજ -->
+    <div id="p3" class="page">
+        <button class="sub-btn" onclick="showPage(2)">⬅ માર્ક એન્ટ્રી પેજ</button>
+        
+        <div style="text-align: center; background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 2px dashed #1e3799;">
+            <button class="btn-green" id="btnDownloadAll" onclick="downloadAllPDFs()">📥 Download All PDFs</button>
+            <button class="btn-excel" onclick="exportToExcel()">📊 Export to Excel</button>
+        </div>
+
+        <h3 style="color: #1e3799;">✅ ડાઉનલોડ કરવા માટે નામ પર ક્લિક કરો:</h3>
+        <div id="downloadList"></div>
+    </div>
+</div>
+
+<div id="pdf-hidden" style="position: absolute; left: -9999px;">
+    <div id="pdf-content">
+        <img id="pdf-logo" class="school-logo" src="">
+        <img id="pdf-saraswati" class="school-logo" src="" style="left: auto; right: 35px;">
+
+        <div class="header-top">
+            <h1>શાળાકીય સર્વગ્રાહી મૂલ્યાંકન</h1>
+            <h2>જિલ્લા પંચાયત શિક્ષણ સમિતિ, સુરત</h2>
+            <div id="h-sch"></div> 
+            <p><b>ડાયસ કોડ:</b> <span id="h-dice"></span> | <b>વર્ષ:</b> 2025-26</p>
+        </div>
+
+        <div class="info-grid">
+            <div style="grid-column: span 2;"><b>નામ:</b> <span id="h-name"></span></div>
+            <div><b>માતાનું નામ:</b> <span id="h-mname"></span></div>
+            <div><b>ધોરણ:</b> <span id="h-std"></span></div>
+            <div><b>હાજરી નં:</b> <span id="h-roll"></span></div>
+            <div><b>જી.આર. નં:</b> <span id="h-gr"></span></div>
+            <div><b>જન્મ તારીખ:</b> <span id="h-dob"></span></div>
+            <div><b>આધાર આઈડી:</b> <span id="h-aadhaar"></span></div>
+            <div style="grid-column: span 2;"><b>હાજરી:</b> <span id="h-att"></span></div>
+        </div>
+
+        <div class="section-header">શૈક્ષણિક મૂલ્યાંકન વિગતો</div>
+        <div id="h-table"></div>
+
+        <div class="seal-space">શાળાનો સિક્કો</div>
+
+        <div class="footer-sig">
+            <div>________________<br>વર્ગશિક્ષકની સહી</div>
+            <div>________________<br>વાલીની સહી</div>
+            <div>
+                ________________<br>આચાર્યની સહી<br>
+                <div class="date-box">તારીખ: <span id="h-formatted-date"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyDOBPExOUO3W32XMNJC4N5z-3HD5LW7oMo",
+        authDomain: "schoolresult2026-27.firebaseapp.com",
+        projectId: "schoolresult2026-27",
+        storageBucket: "schoolresult2026-27.firebasestorage.app",
+        messagingSenderId: "594140115173",
+        appId: "1:594140115173:web:e10d22022951db939d640c",
+        measurementId: "G-KR5SNNQGVP"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let baseStorageKey = "default_school_data";
+    
+    function getSelectedStd() {
+        let sel = document.getElementById('stdSelect');
+        return sel ? sel.value : "1";
+    }
+
+    function getActiveStorageKey() {
+        let stdVal = document.getElementById('std') ? document.getElementById('std').value : getSelectedStd();
+        return baseStorageKey + "_Std_" + (stdVal || "1");
+    }
+
+    let students = [], subjectsConfig = [], marksData = {}, ranks = {}, logoData = "", saraswatiData = "";
+
+    window.onload = async function() {
+        let schEl = document.getElementById('sch');
+        if(schEl && !schEl.value) schEl.value = "પ્રાથમિક શાળા વાંકાનેર";
+        
+        await loadDataForCurrentStdFromCloud();
+        
+        try {
+            let doc = await db.collection("SchoolData").doc(baseStorageKey + "_PIN").get();
+            let savedPin = doc.exists ? doc.data().pin : localStorage.getItem('appPin_' + baseStorageKey);
+            if(!savedPin) {
+                document.getElementById('adminEditableContent').style.opacity = '1';
+                document.getElementById('adminEditableContent').style.pointerEvents = 'auto';
+                document.getElementById('adminPasswordBox').style.display = 'none';
+            }
+        } catch(e) { console.log(e); }
+        
+        showPage(1);
+    };
+
+    async function unlockAdminSetup() {
+        let enteredPin = document.getElementById('adminPinInput').value;
+        try {
+            let doc = await db.collection("SchoolData").doc(baseStorageKey + "_PIN").get();
+            let savedPin = doc.exists ? doc.data().pin : localStorage.getItem('appPin_' + baseStorageKey);
+            
+            if(enteredPin === savedPin) {
+                document.getElementById('adminEditableContent').style.opacity = '1';
+                document.getElementById('adminEditableContent').style.pointerEvents = 'auto';
+                document.getElementById('adminPasswordBox').style.display = 'none';
+                alert("એડમીન સેટઅપ અનલોક થઈ ગયું છે!");
+            } else {
+                alert("ખોટો પિન નંબર છે!");
+            }
+        } catch(e) {
+            alert("Error: " + e.message);
+        }
+    }
+
+    async function checkAdminAccess() {
+        try {
+            let doc = await db.collection("SchoolData").doc(baseStorageKey + "_PIN").get();
+            let savedPin = doc.exists ? doc.data().pin : localStorage.getItem('appPin_' + baseStorageKey);
+            if(!savedPin) {
+                showPage(1);
+                document.getElementById('adminEditableContent').style.opacity = '1';
+                document.getElementById('adminEditableContent').style.pointerEvents = 'auto';
+                document.getElementById('adminPasswordBox').style.display = 'none';
+            } else {
+                showPage(1);
+                document.getElementById('adminEditableContent').style.opacity = '0.4';
+                document.getElementById('adminEditableContent').style.pointerEvents = 'none';
+                document.getElementById('adminPasswordBox').style.display = 'block';
+            }
+        } catch(e) {
+            showPage(1);
+        }
+    }
+
+    function goToTeacherStandardPage() {
+        showPage('1_5');
+    }
+
+    async function onStdDropdownChange() {
+        await loadDataForCurrentStdFromCloud();
+    }
+
+    async function loadDataForCurrentStdFromCloud() {
+        let currentStorageKey = baseStorageKey + "_Std_" + getSelectedStd();
+        try {
+            let doc = await db.collection("SchoolData").doc(currentStorageKey).get();
+            if (doc.exists) {
+                let data = doc.data();
+                document.getElementById('sch').value = data.sch || "પ્રાથમિક શાળા વાંકાનેર";
+                document.getElementById('schDice').value = data.schDice || "";
+                document.getElementById('rDate').value = data.rDate || "";
+                document.getElementById('stuDataRaw').value = data.stuDataRaw || "";
+                document.getElementById('subsConfigRaw').value = data.subsConfigRaw || "";
+                document.getElementById('persMax1').value = data.persMax1 || "400";
+                document.getElementById('persMax2').value = data.persMax2 || "400";
+                logoData = data.logoData || "";
+                saraswatiData = data.saraswatiData || "";
+            } else {
+                ['schDice', 'rDate', 'stuDataRaw', 'subsConfigRaw'].forEach(id => {
+                    let el = document.getElementById(id);
+                    if(el) el.value = "";
+                });
+                document.getElementById('persMax1').value = "400";
+                document.getElementById('persMax2').value = "400";
+                logoData = ""; saraswatiData = "";
+            }
+        } catch(e) {
+            console.log("Cloud load error:", e);
+        }
+    }
+
+    async function saveAndLockData() {
+        let pin = document.getElementById('entryPin').value;
+        if(!pin || pin.length < 4) return alert("કૃપા કરીને ૪ અંકનો વેલિડ પિન નંબર નાખો!");
+        
+        const raw = document.getElementById('stuDataRaw').value;
+        const subRaw = document.getElementById('subsConfigRaw').value;
+        if(!raw || !subRaw) return alert("કૃપા કરીને વિદ્યાર્થીઓની વિગતો અને વિષયોની ગોઠવણી ભરો!");
+
+        let currentStorageKey = baseStorageKey + "_Std_" + getSelectedStd();
+        let payload = {
+            sch: document.getElementById('sch').value,
+            schDice: document.getElementById('schDice').value,
+            rDate: document.getElementById('rDate').value,
+            stuDataRaw: raw,
+            subsConfigRaw: subRaw,
+            persMax1: document.getElementById('persMax1').value,
+            persMax2: document.getElementById('persMax2').value,
+            logoData: logoData,
+            saraswatiData: saraswatiData
+        };
+
+        try {
+            await db.collection("SchoolData").doc(currentStorageKey).set(payload);
+            await db.collection("SchoolData").doc(baseStorageKey + "_PIN").set({ pin: pin });
+            localStorage.setItem('appPin_' + baseStorageKey, pin);
+            alert("ડેટા સફળતાપૂર્વક ક્લાઉડ પર સેવ અને લોક થઈ ગયો છે! ☁️🔒");
+            showPage('1_5');
+        } catch(e) {
+            alert("ક્લાઉડ સેવ કરવામાં ભૂલ: " + e.message);
+        }
+    }
+
+    function selectStandard(stdVal, element) {
+        document.getElementById('std').value = stdVal;
+        document.querySelectorAll('.std-block').forEach(b => b.classList.remove('selected'));
+        if(element) {
+            element.classList.add('selected');
+        }
+    }
+
+    function parseSubjectsConfig() {
+        const subRaw = document.getElementById('subsConfigRaw').value;
+        if(!subRaw) return [];
+        let lines = subRaw.split('\n').filter(l => l.trim() !== '');
+        let configs = [];
+        lines.forEach(line => {
+            let parts = line.split(',').map(x => x.trim());
+            if(parts.length >= 7) {
+                configs.push({
+                    name: parts[0],
+                    maxes: [Number(parts[1]), Number(parts[2]), Number(parts[3]), Number(parts[4]), Number(parts[5]), Number(parts[6])]
+                });
+            }
+        });
+        return configs;
+    }
+
+    async function goToMarkEntry() {
+        let stdVal = document.getElementById('std').value;
+        if(!stdVal) return alert("કૃપા કરીને ધોરણ પસંદ કરો!");
+        
+        let sel = document.getElementById('stdSelect');
+        if(sel) sel.value = stdVal;
+
+        await loadDataForCurrentStdFromCloud();
+        await handleStdChangeCloud();
+        
+        const raw = document.getElementById('stuDataRaw').value;
+        subjectsConfig = parseSubjectsConfig();
+        
+        if(!raw || subjectsConfig.length === 0) return alert("આ ધોરણ માટે એડમીન દ્વારા હજુ સુધી ડેટા નાખવામાં આવ્યો નથી!");
+
+        students = raw.split('\n').filter(l => l.trim() !== '').map(l => {
+            const p = l.split('\t');
+            return { roll: p[0]||'-', name: p[1]||'', gr: p[2]||'-', dob: p[3]||'-', mname: p[4]||'-', aadhaar: p[5]||'-' };
+        });
+
+        let btns = '';
+        subjectsConfig.forEach((s, i) => btns += `<button class="sub-btn" onclick="loadSub(${i})">${s.name}</button>`);
+        btns += `<button class="sub-btn" style="background:#f9ca24;" onclick="loadPers()">વ્યક્તિત્વ વિકાસ</button>`;
+        btns += `<button class="sub-btn" style="background:#4834d4; color:white;" onclick="loadAtt()">હાજરી</button>`;
+        document.getElementById('subButtons').innerHTML = btns;
+        
+        showPage(2);
+        loadSub(0);
+    }
+
+    async function handleStdChangeCloud() {
+        try {
+            let doc = await db.collection("SchoolMarks").doc(getActiveStorageKey()).get();
+            marksData = doc.exists ? (doc.data() || {}) : {};
+        } catch(e) {
+            marksData = {};
+        }
+    }
+
+    async function saveMarksCloud(key, val, maxLimit) { 
+        let numVal = Number(val);
+        if (val !== '' && numVal > maxLimit) {
+            alert(`આના માટે મહત્તમ ગુણ ${maxLimit} જ હોઈ શકે છે!`);
+            val = maxLimit;
+            if (event && event.target) {
+                event.target.value = maxLimit;
+            }
+        }
+        marksData[key] = val; 
+        
+        try {
+            await db.collection("SchoolMarks").doc(getActiveStorageKey()).set(marksData);
+        } catch(e) {
+            console.log("Cloud mark save error:", e);
+        }
+    }
+
+    function showPage(n) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        if(n === '1_5') {
+            document.getElementById('p1_5').classList.add('active');
+        } else {
+            document.getElementById('p' + n).classList.add('active');
+        }
+    }
+
+    function handleLogo(e) {
+        const reader = new FileReader();
+        reader.onload = function(){ logoData = reader.result; }
+        reader.readAsDataURL(e.target.files[0]);
+    }
+
+    function handleSaraswati(e) {
+        const reader = new FileReader();
+        reader.onload = () => { saraswatiData = reader.result; };
+        reader.readAsDataURL(e.target.files[0]);
+    }
+
+    function loadSub(sIdx) {
+        let sub = subjectsConfig[sIdx];
+        let h = `<h3>વિષય: ${sub.name}</h3><table><tr><th>નામ</th><th>ત્રિ (max ${sub.maxes[0]})</th><th>સ૧ (max ${sub.maxes[1]})</th><th>સ્વ૧ (max ${sub.maxes[2]})</th><th>નવ (max ${sub.maxes[3]})</th><th>સ૨ (max ${sub.maxes[4]})</th><th>સ્વ૨ (max ${sub.maxes[5]})</th></tr>`;
+        students.forEach((stu, i) => {
+            h += `<tr><td style="text-align:left;">${stu.name}</td>`;
+            for(let f=1; f<=6; f++) {
+                let k = `m_${i}_${sIdx}_${f}`;
+                let mLimit = sub.maxes[f-1];
+                h += `<td><input type="number" max="${mLimit}" oninput="saveMarksCloud('${k}', this.value, ${mLimit})" value="${marksData[k]||''}"></td>`;
+            }
+            h += `</tr>`;
+        });
+        document.getElementById('entryArea').innerHTML = h + `</table>`;
+    }
+
+    function loadPers() {
+        let p1Max = Number(document.getElementById('persMax1').value) || 400;
+        let p2Max = Number(document.getElementById('persMax2').value) || 400;
+        let h = `<h3>વ્યક્તિત્વ વિકાસ</h3><table><tr><th>નામ</th><th>સત્ર-૧ (max ${p1Max})</th><th>સત્ર-૨ (max ${p2Max})</th></tr>`;
+        students.forEach((stu, i) => {
+            h += `<tr>
+                <td style="text-align:left;">${stu.name}</td>
+                <td><input type="number" max="${p1Max}" oninput="saveMarksCloud('p1_${i}', this.value, ${p1Max})" value="${marksData['p1_'+i]||''}" style="width:120px !important;"></td>
+                <td><input type="number" max="${p2Max}" oninput="saveMarksCloud('p2_${i}', this.value, ${p2Max})" value="${marksData['p2_'+i]||''}" style="width:120px !important;"></td>
+            </tr>`;
+        });
+        document.getElementById('entryArea').innerHTML = h + `</table>`;
+    }
+
+    function loadAtt() {
+        let currentTotal = localStorage.getItem('totalDaysGlobal_' + getActiveStorageKey()) || '';
+        let h = `<div style="background:#f1f2f6; padding:15px; border-radius:10px; margin-bottom:10px;">
+                    <label><b>કુલ શૈક્ષણિક દિવસો: </b></label>
+                    <input type="number" id="totalDaysGlobal" oninput="localStorage.setItem('totalDaysGlobal_'+getActiveStorageKey(), this.value)" value="${currentTotal}" style="width:120px !important;">
+                 </div>
+                 <table><tr><th>નામ</th><th>હાજર દિવસો</th></tr>`;
+        students.forEach((stu, i) => {
+            h += `<tr><td style="text-align:left;">${stu.name}</td><td><input type="number" oninput="saveMarksCloud('pDay_${i}', this.value, 365)" value="${marksData['pDay_'+i]||''}" style="width:150px !important;"></td></tr>`;
+        });
+        document.getElementById('entryArea').innerHTML = h + `</table>`;
+    }
+
+    function getGFromPercentage(p) {
+        if (p >= 80) return "A";
+        if (p >= 65) return "B";
+        if (p >= 50) return "C";
+        if (p >= 35) return "D";
+        return "E";
+    }
+
+    function formatDate(inputDate) {
+        if(!inputDate) return "-";
+        const d = new Date(inputDate);
+        return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()}`;
+    }
+
+    function calculateRanks() {
+        let p1Max = Number(document.getElementById('persMax1').value) || 400;
+        let p2Max = Number(document.getElementById('persMax2').value) || 400;
+        let persMaxAvg = (p1Max + p2Max) / 2;
+
+        let scores = students.map((stu, i) => {
+            let totalObt = 0;
+            let totalMax = 0;
+            subjectsConfig.forEach((sub, si) => {
+                let subMax = sub.maxes.reduce((a, b) => a + b, 0);
+                totalMax += subMax;
+                let subObt = [1,2,3,4,5,6].reduce((acc, f) => acc + Number(marksData[`m_${i}_${si}_${f}`]||0), 0);
+                totalObt += subObt;
+            });
+            totalMax += persMaxAvg;
+            let pAvgObt = (Number(marksData['p1_'+i]||0) + Number(marksData['p2_'+i]||0)) / 2;
+            totalObt += pAvgObt;
+
+            let percentage = (totalObt / totalMax) * 100;
+            return { index: i, percentage: percentage };
+        });
+        scores.sort((a, b) => b.percentage - a.percentage);
+        ranks = {};
+        scores.forEach((item, r) => { if(r < 10) ranks[item.index] = r + 1; });
+    }
+
+    function goToDownload() {
+        subjectsConfig = parseSubjectsConfig();
+        calculateRanks();
+        let h = '<table><tr><th>હા.નં.</th><th>નામ</th><th>રિપોર્ટ</th></tr>';
+        students.forEach((stu, i) => {
+            h += `<tr><td>${stu.roll}</td><td style="text-align:left; font-weight:bold;">${stu.name}</td><td><button onclick="generatePDF(${i})" style="background:#1e3799; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer;">ડાઉનલોડ PDF</button></td></tr>`;
+        });
+        document.getElementById('downloadList').innerHTML = h + '</table>';
+        showPage(3);
+    }
+
+    async function setPDFPreview(idx) {
+        const stu = students[idx];
+        let currentStorageKey = getActiveStorageKey();
+        const globalTotalDays = localStorage.getItem('totalDaysGlobal_' + currentStorageKey) || '0';
+        const pDaysVal = marksData['pDay_' + idx] || '0'; 
+
+        let p1Max = Number(document.getElementById('persMax1').value) || 400;
+        let p2Max = Number(document.getElementById('persMax2').value) || 400;
+        let persMaxTotal = (p1Max + p2Max) / 2;
+
+        document.getElementById('pdf-logo').src = logoData;
+        document.getElementById('pdf-saraswati').src = saraswatiData;
+        document.getElementById('h-sch').innerText = document.getElementById('sch').value;
+        document.getElementById('h-dice').innerText = document.getElementById('schDice').value;
+        document.getElementById('h-name').innerText = stu.name;
+        document.getElementById('h-mname').innerText = stu.mname;
+        document.getElementById('h-std').innerText = getSelectedStd();
+        document.getElementById('h-roll').innerText = stu.roll;
+        document.getElementById('h-gr').innerText = stu.gr;
+        document.getElementById('h-dob').innerText = stu.dob;
+        document.getElementById('h-aadhaar').innerText = stu.aadhaar;
+        document.getElementById('h-att').innerText = pDaysVal + " / " + globalTotalDays;
+        document.getElementById('h-formatted-date').innerText = formatDate(document.getElementById('rDate').value);
+
+        let grandTotalObt = 0;
+        let grandTotalMax = 0;
+        let tableHtml = `<table><tr><th style="width:40px;">ક્રમ</th><th>વિષય</th><th style="width:90px;">કુલ ગુણ</th><th style="width:90px;">મેળવેલ</th><th style="width:70px;">ગ્રેડ</th></tr>`;
+        
+        subjectsConfig.forEach((sub, si) => {
+            let subMax = sub.maxes.reduce((a, b) => a + b, 0);
+            let total = [1,2,3,4,5,6].reduce((acc, f) => acc + Number(marksData[`m_${idx}_${si}_${f}`]||0), 0);
+            grandTotalMax += subMax;
+            grandTotalObt += total;
+            let subPercentage = (total / subMax) * 100;
+            tableHtml += `<tr><td>${si+1}</td><td style="text-align:left;">${sub.name}</td><td>${subMax}</td><td>${total}</td><td>${getGFromPercentage(subPercentage)}</td></tr>`;
+        });
+
+        grandTotalMax += persMaxTotal;
+        let p1Val = Number(marksData['p1_'+idx]||0);
+        let p2Val = Number(marksData['p2_'+idx]||0);
+        let pAvgObt = (p1Val + p2Val) / 2;
+        grandTotalObt += pAvgObt;
+
+        let p1Per = (p1Val / p1Max) * 100;
+        let p2Per = (p2Val / p2Max) * 100;
+        let pAvgPer = (p1Per + p2Per) / 2;
+
+        let serialNo = subjectsConfig.length + 1;
+        tableHtml += `<tr><td>${serialNo}</td><td style="text-align:left;">વ્યક્તિત્વ વિકાસ (સરેરાશ)</td><td>${persMaxTotal}</td><td>${pAvgObt}</td><td>${getGFromPercentage(pAvgPer)}</td></tr>`;
+        
+        let finalPercentage = (grandTotalObt / grandTotalMax) * 100;
+        tableHtml += `<tr class="grand-total-row"><td>${serialNo+1}</td><td style="text-align:left;">કુલ ગુણ</td><td>${grandTotalMax}</td><td>${grandTotalObt}</td><td>${getGFromPercentage(finalPercentage)}</td></tr>`;
+        
+        tableHtml += `<tr class="summary-row"><td colspan="2">ટકાવારી: ${finalPercentage.toFixed(2)}%</td><td colspan="2">એકંદરે ગ્રેડ: ${getGFromPercentage(finalPercentage)}</td><td>ક્રમ: ${ranks[idx] || "-"}</td></tr>`;
+        document.getElementById('h-table').innerHTML = tableHtml + `</table>`;
+    }
+
+    async function generatePDF(idx) {
+        await setPDFPreview(idx);
+        const canvas = await html2canvas(document.getElementById('pdf-content'), { scale: 3 });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, (canvas.height * 210) / canvas.width);
+        doc.save(`${students[idx].roll}.pdf`);
+    }
+
+    async function downloadAllPDFs() {
+        if (students.length === 0) return alert("કોઈ વિદ્યાર્થીનો ડેટા નથી!");
+        const btn = document.getElementById('btnDownloadAll');
+        btn.disabled = true;
+        btn.innerText = "Processing... ⏳";
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+
+        for (let i = 0; i < students.length; i++) {
+            await setPDFPreview(i);
+            const canvas = await html2canvas(document.getElementById('pdf-content'), { scale: 2 });
+            const imgData = canvas.toDataURL('image/jpeg', 0.85);
+            if (i > 0) doc.addPage();
+            doc.addImage(imgData, 'JPEG', 0, 0, 210, (canvas.height * 210) / canvas.width);
+        }
+
+        doc.save(`All_Students_Results.pdf`);
+        btn.disabled = false;
+        btn.innerText = "📥 Download All PDFs";
+    }
+
+    function exportToExcel() {
+        if (students.length === 0) return alert("ડેટા નથી!");
+        let currentStorageKey = getActiveStorageKey();
+        let globalDays = localStorage.getItem('totalDaysGlobal_' + currentStorageKey) || 0;
+        let p1Max = Number(document.getElementById('persMax1').value) || 400;
+        let p2Max = Number(document.getElementById('persMax2').value) || 400;
+        let persMaxTotal = (p1Max + p2Max) / 2;
+
+        let excelData = [];
+        let header = ["રોલ નં", "નામ", "જીઆર નં"];
+        subjectsConfig.forEach(s => {
+            header.push(`${s.name}-ત્રિ`, `${s.name}-સ૧`, `${s.name}-સ્વ૧`, `${s.name}-નવ`, `${s.name}-સ૨`, `${s.name}-સ્વ૨`, `${s.name}-કુલ`, `${s.name}-ગ્રેડ`);
+        });
+        header.push("હાજર દિવસો", "કુલ દિવસો", "હાજરી %", "વ્યક્તિત્વ સ૧", "વ્યક્તિત્વ સરેરાશ", "કુલ ગુણ", "ટકાવારી", "ગ્રેડ", "ક્રમ");
+        excelData.push(header);
+
+        students.forEach((stu, i) => {
+            let row = [stu.roll, stu.name, stu.gr];
+            let subTotalSum = 0;
+            let subMaxSum = 0;
+            subjectsConfig.forEach((sub, si) => {
+                let subMax = sub.maxes.reduce((a, b) => a + b, 0);
+                subMaxSum += subMax;
+                let marks = [1,2,3,4,5,6].map(f => Number(marksData[`m_${i}_${si}_${f}`]||0));
+                let total = marks.reduce((a, b) => a + b, 0);
+                subTotalSum += total;
+                row.push(...marks, total, getGFromPercentage((total/subMax)*100));
+            });
+            let pDay = Number(marksData['pDay_'+i]||0);
+            let attPer = globalDays > 0 ? ((pDay/globalDays)*100).toFixed(2) : 0;
+            let p1 = Number(marksData['p1_'+i]||0);
+            let p2 = Number(marksData['p2_'+i]||0);
+            let pAvg = (p1 + p2) / 2;
+            let finalMax = subMaxSum + persMaxTotal;
+            let finalTotal = subTotalSum + pAvg;
+            let finalPr = ((finalTotal / finalMax) * 100).toFixed(2);
+            
+            row.push(pDay, globalDays, attPer+"%", p1, pAvg, finalTotal, finalPr+"%", getGFromPercentage(finalPr), ranks[i] || "-");
+            excelData.push(row);
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "MarkSheet_Register");
+        XLSX.writeFile(wb, "School_Result_Register.xlsx");
+    }
+
+    function clearData() { 
+        if(confirm("શું તમે ક્લાઉડ પરનો બધો ડેટા સાફ કરવા માંગો છો?")) { 
+            db.collection("SchoolData").doc(getActiveStorageKey()).delete().then(() => {
+                localStorage.clear();
+                location.reload(); 
+            });
+        } 
+    }
+</script>
+</body>
+</html>
